@@ -1,0 +1,7 @@
+%h2 Project list
+
+%ul
+  - @projects.each do |project|
+    %li
+      = link_to project.name, view_path(project.name, 15)
+

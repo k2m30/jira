@@ -1,0 +1,68 @@
+= link_to 'Back to projects list', root_path
+|
+= link_to 'Refresh', refresh_path(params[:name], params[:period])
+
+%h2
+  =@project.name + ' stats'
+
+%table.table
+  %thead
+    %th
+    -@dates.each do |date|
+      %th
+        =date.to_formatted_s(:short)
+    %th Total
+  %tbody
+    -@table['pivot'].keys.each do |member|
+      %tr
+        %td
+          = member
+        - total = 0
+        -@dates.map(&:to_formatted_s).each do |date|
+          %td
+            - logged = @table['pivot'][member][date].try(:round, 2) || 0
+            - total += logged
+            = logged.zero? ? '-' : logged
+        %td
+          = total.round(2)
+
+- issues = @table['issues']
+#accordion.panel-group{'aria-multiselectable': 'true', role: 'tablist'}
+  -@table['pivot'].keys.each do |member|
+    .panel.panel-default
+      #headingOne.panel-heading{role: 'tab'}
+        %h4.panel-title
+          %a{'aria-controls': member, 'aria-expanded': 'true', 'data-parent': '#accordion', 'data-toggle': 'collapse', href: "##{member}", role: 'button'}
+            = member
+      .panel-collapse.collapse.in{'aria-labelledby': 'headingOne', role: 'tabpanel', id: member}
+        .panel-body
+          -@dates.map(&:to_formatted_s).each do |date|
+            %table.table
+              %thead
+                %th.col-xs-3
+                  = date
+                %th.col-xs-4 Summary
+                %th.col-xs-2 Sprint
+                %th.col-xs-1 Logged
+                %th.col-xs-1 Total spent on issue
+                %th.col-xs-1 Original estimate
+              %tbody
+                - @table['worklog'].select{|i| i['author'] == member and i['date'] == date}.each do |worklog|
+                  -issue = issues.select{|i| i['key'] == worklog['issue']}.first
+                  - time_spent = issue.try(:[], 'time_spent').try(:round, 2) || 0
+                  - original_estimate = issue.try(:[], 'original_estimate').try(:round, 2) || 0
+                  %tr{class: original_estimate - time_spent < 0 ? 'table-danger' : ''}
+                    %td
+                      %a{href: issue.try(:[], 'url'), target: :_blank}
+                        = worklog['issue']
+                    %td
+                      = issue.try(:[], 'summary')
+                    %td
+                      = issue.try(:[], 'sprint')
+                    %td
+                      = worklog['logged'].try(:round, 2)
+                    %td
+                      = time_spent
+                    %td
+                      = original_estimate
+
